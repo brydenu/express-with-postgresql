@@ -45,13 +45,28 @@ router.get("/:id", async function(req, res, next) {
 
 router.post("/", async function(req, res, next) {
     try {
+        const vals = [req.body.comp_code, req.body.amt, req.body.paid, req.body.add_date, req.body.paid_date]
+        
+        // Check all required body values
+        if (vals.slice(0,4).includes(undefined)) {
+            throw new ExpressError("Missing arguments. POST request body must include comp_code, amt, paid, and add_date", 400)
+       
+        // If there is no paid_date, that's okay unless "paid" is true. If "paid" is true
+        // without a paid_date, throw an error
+        } else if (vals[4] == undefined) {
+            if (vals[2]) {
+                throw new ExpressError("Paid invoices must include a paid_date", 400)
+            } else {
+                vals[4] = null;
+            }
+        }
         const query = await db.query(`
             INSERT INTO invoices
             (comp_code, amt, paid, add_date, paid_date)
             VALUES
             ($1, $2, $3, $4, $5)
             RETURNING id, comp_code, amt, paid, add_date, paid_date`, 
-            [req.body.comp_code, req.body.amt, req.body.paid, req.body.add_date, req.body.paid_date]
+            vals
         )
 
         return res.status(201).json({invoice: query.rows[0]})
