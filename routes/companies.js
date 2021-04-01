@@ -37,10 +37,15 @@ router.get("/:code", async function(req, res, next) {
 
 router.post("/", async function(req, res, next) {
     try {
+        const vals = [req.body.code, req.body.name, req.body.description];
+        if (vals.includes(undefined)) {
+            throw new ExpressError("Missing parameters. Request body must include code, name, and description", 400)
+        }
+
         const result = await db.query(`
             INSERT INTO companies (code, name, description)
             VALUES ($1, $2, $3)
-            RETURNING code, name, description`, [req.body.code, req.body.name, req.body.description]
+            RETURNING code, name, description`, vals
         );
 
         return res.status(201).json({company: result.rows[0]})
